@@ -15,7 +15,7 @@ A command-line tool for executing SuiteQL queries against NetSuite's REST API.
 ## Installation
 
 ```bash
-go install github.com/yourusername/gosuiteql@latest
+go install github.com/ajbonner/gosuiteql@latest
 ```
 
 ## Usage
