@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/TylerBrock/colorjson"
 	"github.com/dghubble/oauth1"
 	"github.com/joho/godotenv"
 )
@@ -98,13 +98,23 @@ func (c *SuiteQLClient) ExecuteQuery(query string, limit, offset *int) (string, 
 		return "", fmt.Errorf("error: received status code %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Pretty print JSON response
-	var prettyJSON bytes.Buffer
-	if err := json.Indent(&prettyJSON, body, "", "  "); err != nil {
+	// Parse JSON for pretty printing with colors
+	var obj any
+	if err := json.Unmarshal(body, &obj); err != nil {
 		return "", fmt.Errorf("error parsing JSON response: %v", err)
 	}
 
-	return prettyJSON.String(), nil
+	// Create a color formatter
+	formatter := colorjson.NewFormatter()
+	formatter.Indent = 2
+
+	// Format the JSON with colors
+	output, err := formatter.Marshal(obj)
+	if err != nil {
+		return "", fmt.Errorf("error formatting JSON: %v", err)
+	}
+
+	return string(output), nil
 }
 
 func getCredentials() (*Credentials, error) {

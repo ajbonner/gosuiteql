@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"gosuiteql/internal"
 )
@@ -25,10 +26,11 @@ func main() {
 		fmt.Println("\nExamples:")
 		fmt.Println("  gosuiteql -query \"SELECT * FROM transaction\"")
 		fmt.Println("  gosuiteql -file query.sql")
+		fmt.Println("  echo \"SELECT * FROM transaction\" | gosuiteql")
 		os.Exit(0)
 	}
 
-	// Get the query from either file or command line
+	// Get the query from either file, command line, or stdin
 	var queryStr string
 	if *queryFile != "" {
 		file, err := os.Open(*queryFile)
@@ -47,8 +49,32 @@ func main() {
 	} else if *query != "" {
 		queryStr = *query
 	} else {
-		fmt.Println("Error: Either -query or -file must be specified")
-		flag.PrintDefaults()
+		// Check if stdin has data
+		stat, err := os.Stdin.Stat()
+		if err != nil {
+			fmt.Printf("Error checking stdin: %v\n", err)
+			os.Exit(1)
+		}
+
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			// stdin is not a terminal (has data)
+			content, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				fmt.Printf("Error reading from stdin: %v\n", err)
+				os.Exit(1)
+			}
+			queryStr = string(content)
+		} else {
+			fmt.Println("Error: No query provided. Use -query, -file, or pipe input via stdin")
+			flag.PrintDefaults()
+			os.Exit(1)
+		}
+	}
+
+	// Trim any whitespace from the query
+	queryStr = strings.TrimSpace(queryStr)
+	if queryStr == "" {
+		fmt.Println("Error: Empty query provided")
 		os.Exit(1)
 	}
 
